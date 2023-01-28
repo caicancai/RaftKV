@@ -93,7 +93,9 @@ func (s *Service) Close() {
 	s.ln.Close()
 }
 
-// ServeHTTP allows Service to serve HTTP requests.
+// 根据 URL 路径设置相关的路由信息
+//
+//eg:handlerKeyRequest() 中处理 URL 路径前缀为"/key"的请求，会在 handleJoin() 中处理 URL 路径为"/join"的请求
 func (s *Service) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if strings.HasPrefix(r.URL.Path, "/key") {
 		s.handleKeyRequest(w, r)
@@ -104,6 +106,7 @@ func (s *Service) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// 处理增加节点的请求
 func (s *Service) handleJoin(w http.ResponseWriter, r *http.Request) {
 	m := map[string]string{}
 	if err := json.NewDecoder(r.Body).Decode(&m); err != nil {
@@ -167,6 +170,7 @@ func level(req *http.Request) (store.ConsistencyLevel, error) {
 	}
 }
 
+// ，处理来自客户端的 KV 操作请求
 func (s *Service) handleKeyRequest(w http.ResponseWriter, r *http.Request) {
 	getKey := func() string {
 		parts := strings.Split(r.URL.Path, "/")

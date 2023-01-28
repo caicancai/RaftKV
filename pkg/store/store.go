@@ -104,11 +104,22 @@ func (s *Store) Open(enableSingle bool, localID string) error {
 	if err != nil {
 		return err
 	}
+
+	//Raft集群内部节点之间的通信机制
+	/**
+	要绑定的地址信息（raftBind、addr）、连接池的大小（maxPool）、超时时间（timeout），以及日志输出的方式
+	*/
 	transport, err := raft.NewTCPTransport(s.RaftBind, addr, 3, 10*time.Second, os.Stderr)
 	if err != nil {
 		return err
 	}
 
+	//文件持久化存储
+	/**
+	raftDir:指定存储路径
+	retainSnapshotCount：保留快照副本数量
+	os.Stderr：日志输出方式
+	*/
 	snapshots, err := raft.NewFileSnapshotStore(s.RaftDir, retainSnapshotCount, os.Stderr)
 	if err != nil {
 		return fmt.Errorf("file snapshot store: %s", err)
@@ -123,7 +134,7 @@ func (s *Store) Open(enableSingle bool, localID string) error {
 	logStore = boltDB
 	stableStore = boltDB
 
-	//实例化raft系统
+	//创建Raft节点对象
 	ra, err := raft.NewRaft(config, (*fsm)(s), logStore, stableStore, snapshots, transport)
 	if err != nil {
 		return fmt.Errorf("new raft: %s", err)
@@ -140,6 +151,7 @@ func (s *Store) Open(enableSingle bool, localID string) error {
 				},
 			},
 		}
+		//第一个节点启动，启动后成为领导者
 		ra.BootstrapCluster(configuration)
 	} else {
 		s.logger.Printf("no bootstrap needed")
@@ -289,8 +301,6 @@ func (s *Store) Join(nodeID, httpAddr string, addr string) error {
 		// If a node already exists with either the joining node's ID or address,
 		// that node may need to be removed from the config first.
 		if srv.ID == raft.ServerID(nodeID) || srv.Address == raft.ServerAddress(addr) {
-			// However if *both* the ID and the address are the same, then nothing -- not even
-			// a join operation -- is needed.
 			if srv.Address == raft.ServerAddress(addr) && srv.ID == raft.ServerID(nodeID) {
 				s.logger.Printf("node %s at %s already member of cluster, ignoring join request", nodeID, addr)
 				return nil
@@ -303,6 +313,7 @@ func (s *Store) Join(nodeID, httpAddr string, addr string) error {
 		}
 	}
 
+	//把新节点加入集群
 	f := s.raft.AddVoter(raft.ServerID(nodeID), raft.ServerAddress(addr), 0, 0)
 	if f.Error() != nil {
 		return f.Error()
@@ -335,7 +346,6 @@ func (f *fsm) Apply(l *raft.Log) interface{} {
 	}
 }
 
-// Snapshot returns a snapshot of the key-value store.
 func (f *fsm) Snapshot() (raft.FSMSnapshot, error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
@@ -348,7 +358,6 @@ func (f *fsm) Snapshot() (raft.FSMSnapshot, error) {
 	return &fsmSnapshot{store: o}, nil
 }
 
-// Restore stores the key-value store to a previous state.
 func (f *fsm) Restore(rc io.ReadCloser) error {
 	o := make(map[string]string)
 	if err := json.NewDecoder(rc).Decode(&o); err != nil {
