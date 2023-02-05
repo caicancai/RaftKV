@@ -34,6 +34,8 @@ func (s *Service) ServeHTTP(w http.ResponseWriter, r *http.Request) {    // 设�
 curl -XPOST http://raft-cluster-host01:8091/key -d '{"foo": "bar"}'
 ```
 
+参考：《分布式协议与算法实战》
+
 查询操作：我们可以通过 HTTP GET 请求，来查询指定 key 的值，就像下面的样子。
 
 ```shell
