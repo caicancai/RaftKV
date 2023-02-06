@@ -34,7 +34,6 @@ func (s *Service) ServeHTTP(w http.ResponseWriter, r *http.Request) {    // 设�
 curl -XPOST http://raft-cluster-host01:8091/key -d '{"foo": "bar"}'
 ```
 
-参考：《分布式协议与算法实战》
 
 查询操作：我们可以通过 HTTP GET 请求，来查询指定 key 的值，就像下面的样子。
 
@@ -145,3 +144,4 @@ func (s *Store) Delete(key string) error {
 
 - 先将第一个节点，通过 Bootstrap 的方式启动，并作为领导者节点。
 - 其他节点与领导者节点通讯，将自己的配置信息发送给领导者节点，然后领导者节点调用 AddVoter() 函数，将新节点加入到集群中。 
+参考：《分布式协议与算法实战》
